@@ -33,3 +33,5 @@ License
 l3py a free Open Source software released under the MIT license.
 
 If you wish to cite l3py in a publication, please use the following DOI.
+
+[![DOI](https://zenodo.org/badge/151739427.svg)](https://zenodo.org/badge/latestdoi/151739427)
