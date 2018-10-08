@@ -1,3 +1,25 @@
+"""
+Example: Compute DDK3 filtered grids for ocean applications
+
+The test data required is available on the ITSG FTP server:
+ftp://ftp.tugraz.at/outgoing/ITSG/GRACE/ITSG-Grace2018/monthly
+
+Download the potential coefficients to a directory of your choice and change the variables `model_dir` and
+`solution_dir` accordingly.
+
+The example script performs the following steps for a time series of GRACE monthly solutions:
+
+- replace c20 with an SLR estimate
+- add degree one coefficients
+- remove GIA signal
+- restored AOD1B ocean bottom pressure to get the full ocean mass
+
+- reduce the mean of the resulting time series
+- compute gridded equivalent water height on a 0.5x0.5 degree geographic grid
+- write the grid time series to a netCDF file
+
+"""
+
 import l3py
 import numpy as np
 import datetime as dt
