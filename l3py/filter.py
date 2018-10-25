@@ -2,7 +2,7 @@
 # See LICENSE for copyright/license details.
 
 
-from l3py.gravityfield import GravityField
+from l3py.gravityfield import PotentialCoefficients
 import pkg_resources
 import numpy as np
 import abc
@@ -19,6 +19,7 @@ class SpatialFilter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def filter(self, gravityfield):
         pass
+
 
 class Gaussian(SpatialFilter):
     """
@@ -50,8 +51,8 @@ class Gaussian(SpatialFilter):
 
         """
 
-        if not isinstance(gravityfield, GravityField):
-            raise TypeError("Filter operation only implemented for instances of 'Gravityfield'")
+        if not isinstance(gravityfield, PotentialCoefficients):
+            raise TypeError("Filter operation only implemented for instances of 'PotentialCoefficients'")
 
         nmax = gravityfield.nmax()
 
@@ -107,8 +108,8 @@ class DDK(SpatialFilter):
             if maximum spherical harmonic degree is greater than 120
 
         """
-        if not isinstance(gravityfield, GravityField):
-            raise TypeError("Filter operation only implemented for instances of 'Gravityfield'")
+        if not isinstance(gravityfield, PotentialCoefficients):
+            raise TypeError("Filter operation only implemented for instances of 'PotentialCoefficients'")
 
         nmax = gravityfield.nmax()
         if nmax > 120:

@@ -3,8 +3,9 @@
 
 
 import numpy as np
-import pkg_resources
-import abc
+import l3py.grid
+import l3py.kernel
+from l3py.utilities import legendre_functions
 
 
 class Coefficient:
@@ -30,7 +31,7 @@ class Coefficient:
         self.trigonometric_function = trigfun
 
 
-class GravityField:
+class PotentialCoefficients:
     """
     Class representation of a set of (possibly time stamped) potential coefficients.
 
@@ -49,14 +50,15 @@ class GravityField:
         self.epoch = None
 
     def copy(self):
-        """Return a deep copy of the gravity field instance"""
-        gf = GravityField(self.GM, self.R)
+        """Return a deep copy of the PotentialCoefficients instance."""
+        gf = PotentialCoefficients(self.GM, self.R)
         gf.anm = self.anm.copy()
+        gf.epoch = self.epoch
 
         return gf
 
     def append(self, *coeffs):
-        """Append a coefficient to a gravity field."""
+        """Append a coefficient to a PotentialCoefficients instance."""
         for coeff in coeffs:
             if coeff.n > self.nmax():
                 tmp = np.zeros((coeff.n+1, coeff.n+1))
@@ -64,23 +66,23 @@ class GravityField:
                 self.anm = tmp
 
             if coeff.trigonometric_function == np.cos:
-                self.anm[coeff.n, coeff.m] = coeff.value * self.GM / self.R
+                self.anm[coeff.n, coeff.m] = coeff.value
             elif coeff.trigonometric_function == np.sin and coeff.m > 0:
-                self.anm[coeff.m-1, coeff.n] = coeff.value * self.GM / self.R
+                self.anm[coeff.m-1, coeff.n] = coeff.value
 
     def truncate(self, nmax):
-        """Truncate a gravity field to a new maximum spherical harmonic degree."""
+        """Truncate a PotentialCoefficients instance to a new maximum spherical harmonic degree."""
         if nmax < self.nmax():
-            self.anm.resize((nmax+1, nmax+1))
+            self.anm = self.anm[0:nmax+1, 0:nmax+1]
 
     def replace_c20(self, gravityfield):
         """
-        Replace the c20 coefficient of a gravity field by c20 of another gravity field. Substitution is performed
-        in-place.
+        Replace the c20 coefficient of a PotentialCoefficients instance by c20 of another
+        PotentialCoefficients instance. Substitution is performed in-place.
 
         Parameters
         ----------
-        gravityfield : GravityField instance
+        gravityfield : PotentialCoefficients instance
             gravity field containing the new c20 value
 
         """
@@ -108,35 +110,47 @@ class GravityField:
 
         return coeffs
 
+    def __degree_array(self):
+        """Return degrees of all coefficients as numpy array"""
+        da = np.zeros(self.anm.shape, dtype=int)
+        for n in range(self.nmax()+1):
+            da[n, 0:n+1] = n
+            da[0:n, n] = n
+
+        return da
+
     def nmax(self):
-        """Return maximum spherical harmonic degree of gravity field."""
+        """Return maximum spherical harmonic degree of a PotentialCoefficients instance."""
         return self.anm.shape[0]-1
 
     def __add__(self, other):
-        """Coefficient-wise addition of two gravity fields."""
-        if not isinstance(other, GravityField):
-            raise TypeError("unsupported operand type(s) for +: 'Gravityfield' and '"+type(other)+"'")
+        """Coefficient-wise addition of two PotentialCoefficients instances."""
+        if not isinstance(other, PotentialCoefficients):
+            raise TypeError("unsupported operand type(s) for +: '"+str(type(self))+"' and '"+str(type(other))+"'")
 
-        if self.nmax() > other.nmax():
+        factor = (other.R / self.R) ** other.__degree_array() * (other.GM / self.GM)
+        if self.nmax() >= other.nmax():
             result = self.copy()
-            result.anm[0:other.anm.shape[0], 0:other.anm.shape[1]] += other.anm
+            result.anm[0:other.anm.shape[0], 0:other.anm.shape[1]] += (other.anm*factor)
         else:
-            result = other.copy()
+            result = PotentialCoefficients(self.GM, self.R)
+            result.epoch = self.epoch
+            result.anm = other.anm*factor
             result.anm[0:self.anm.shape[0], 0:self.anm.shape[1]] += self.anm
 
         return result
 
     def __sub__(self, other):
-        """Coefficient-wise subtraction of two gravity fields."""
-        if not isinstance(other, GravityField):
-            raise TypeError("unsupported operand type(s) for -: 'Gravityfield' and '"+type(other)+"'")
+        """Coefficient-wise subtraction of two PotentialCoefficients instances."""
+        if not isinstance(other, PotentialCoefficients):
+            raise TypeError("unsupported operand type(s) for -: '"+str(type(self))+"' and '"+str(type(other))+"'")
 
         return self+(other*-1)
 
     def __mul__(self, other):
-        """Multiplication of a gravity field with a numeric scalar."""
+        """Multiplication of a PotentialCoefficients instance with a numeric scalar."""
         if not isinstance(other, (int, float)):
-            raise TypeError("unsupported operand type(s) for *: 'Gravityfield' and '"+type(other)+"'")
+            raise TypeError("unsupported operand type(s) for *: '"+str(type(self))+"' and '"+str(type(other))+"'")
 
         result = self.copy()
         result.anm *= other
@@ -144,62 +158,76 @@ class GravityField:
         return result
 
     def __truediv__(self, other):
-        """Division of a gravity field by a numeric scalar."""
+        """Division of a PotentialCoefficients instance by a numeric scalar."""
         if not isinstance(other, (int, float)):
-            raise TypeError("unsupported operand type(s) for /: 'Gravityfield' and '"+type(other)+"'")
+            raise TypeError("unsupported operand type(s) for /: '"+str(type(self))+"' and '"+str(type(other))+"'")
 
         return self*(1.0/other)
 
+    def degree_amplitudes(self, kernel='potential'):
+        """Compute degree amplitudes from potential coefficients"""
+        degrees = np.arange(self.nmax()+1)
+        amplitudes = np.zeros(degrees.size)
 
-class Kernel(metaclass=abc.ABCMeta):
-    """
-    Base interface for spherical harmonic kernels.
+        for n in degrees:
+            cnm = self.anm[n, 0:n+1]
+            snm = self.anm[0:n, n]
+            amplitudes[n] = (np.sum(cnm**2) + np.sum(snm**2))/np.sqrt(2*n+1)
 
-    Subclasses must implement a method `kn` which depends on degree radius and latitude and returns kernel
-    coefficients.
-    """
+        return degrees, amplitudes
 
-    @abc.abstractmethod
-    def kn(self, r, lat):
-        pass
-
-
-class WaterHeight(Kernel):
-    """
-    Implementation of the water height kernel. Applied to a sequence of potential coefficients, the result is
-    equivalent water height when propagated to space domain.
-
-    Parameters
-    ----------
-    nmax : int
-        maximum spherical harmonic degree
-    rho : float
-        density of water in [kg/m**3]
-    """
-    def __init__(self, nmax, rho=1025):
-
-        file_name = pkg_resources.resource_filename('l3py', 'data/loadLoveNumbers_Gegout97.txt')
-        love_numbers = np.loadtxt(file_name)
-        love_numbers.resize((nmax+1,))
-
-        self.__kn = (2*np.arange(0, nmax+1)+1)/(1+love_numbers[0:nmax+1])/(4*np.pi*6.673e-11*rho)
-
-    def kn(self, n, r=6378136.6, lat=0):
+    def to_grid(self, grid=l3py.grid.GeographicGrid(), kernel='ewh'):
         """
-        Kernel coefficient for degree n.
+        Compute gridded values from a set of potential coefficients.
 
         Parameters
         ----------
-        n : int
-            coefficient degree
-        r : float, array_like shape (m,)
-            radius of evaluation points
-        dat : float, array_like shape (m,)
-            latitude of evaluation points in radians
+        gravityfield : PotentialCoefficients instance
+            potential coefficients to be gridded
+        grid : instance of Grid subclass
+            point distribution (Default: 0.5x0.5 degree geographic grid)
+        kernel : {'ewh', 'obp', 'surface_density'}
+            gravity field functional to be gridded (Default: equivalent water height)
 
         Returns
         -------
-        kn : float, array_like shape (m,)
-            kernel coefficients for degree n for all evaluation points
+        output_grid : instance of type(grid)
+            deep copy of the input grid with the gridded values
         """
-        return self.__kn[n]/r
+        inverse_coefficients = np.ones(self.nmax()+1)
+
+        if kernel not in ('ewh', 'obp'):
+            raise ValueError("Unrecognized kernel ({0:s})".format(kernel))
+        elif kernel == 'ewh':
+            inverse_coefficients = l3py.kernel.WaterHeight(self.nmax())
+        elif kernel == 'obp':
+            inverse_coefficients = l3py.kernel.OceanBottomPressure(self.nmax())
+
+        if grid.is_regular():
+            P = legendre_functions(self.nmax(), grid.colatitude())
+            Rr = (self.R / grid.radius())
+
+            gridded_values = np.zeros((grid.lats.size, grid.lons.size))
+
+            for n in range(self.nmax() + 1):
+                coeffs = self.by_degree(n)
+                orders = [c.m for c in coeffs]
+                idx = [int(n * (n + 1) * 0.5 + m) for m in orders]
+
+                kn = inverse_coefficients.kn(n, grid.radius(), grid.colatitude())
+
+                CS = np.vstack([c.trigonometric_function(c.m * grid.lons) * c.value for c in coeffs])
+                gridded_values += (kn * Rr ** (n + 1))[:, np.newaxis] * P[:, idx] @ CS
+
+            output_grid = grid.copy()
+            output_grid.values = gridded_values*(self.GM/self.R)
+            output_grid.epoch = self.epoch
+        else:
+            raise NotImplementedError('Propagation to arbitrary point distributions is not yet implemented.')
+
+        return output_grid
+
+
+
+
+

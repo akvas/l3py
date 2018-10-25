@@ -7,4 +7,4 @@ from . import gravityfield
 from . import filter
 from . import utilities
 
-__all__ = ["io", "grid", "gravityfield", "filter", "utilities"]
+__all__ = ["io", "grid", "gravityfield", "filter", "kernel", "utilities"]

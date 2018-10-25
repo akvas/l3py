@@ -2,7 +2,7 @@
 # See LICENSE for copyright/license details.
 
 
-from l3py.gravityfield import GravityField, Coefficient
+from l3py.gravityfield import PotentialCoefficients, Coefficient
 from netCDF4 import Dataset
 import datetime as dt
 import numpy as np
@@ -33,7 +33,7 @@ def loadgfc(fname, nmax=None):
     gf : GravityField
         GravityField instance
     """
-    gf = GravityField()
+    gf = PotentialCoefficients()
 
     with open(fname, 'r') as f:
 

@@ -69,9 +69,10 @@ base_grid = l3py.grid.GeographicGrid(dlon=0.5, dlat=0.5)
 
 grids = []
 for grace_monthly in monthly_solutions:
-    print(grace_monthly.strftime('Compute filtered grid for %Y-%m.'))
+    print(grace_monthly.epoch.strftime('Compute filtered grid for %Y-%m.'))
+
     filtered_solution = shc_filter.filter(grace_monthly)
-    filtered_grid = l3py.grid.shc2grid(filtered_solution)
+    filtered_grid = filtered_solution.to_grid(base_grid, kernel='ewh')
     grids.append(filtered_grid)
 
 l3py.io.savegrids('output.nc', grids)
