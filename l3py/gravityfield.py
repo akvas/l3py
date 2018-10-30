@@ -174,7 +174,7 @@ class PotentialCoefficients:
             snm = self.anm[0:n, n]
             amplitudes[n] = (np.sum(cnm**2) + np.sum(snm**2))/np.sqrt(2*n+1)
 
-        return degrees, amplitudes
+        return degrees, amplitudes*self.GM/self.R
 
     def to_grid(self, grid=l3py.grid.GeographicGrid(), kernel='ewh'):
         """
