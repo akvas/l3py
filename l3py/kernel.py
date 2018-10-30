@@ -32,6 +32,7 @@ class WaterHeight(Kernel):
     rho : float
         density of water in [kg/m**3]
     """
+
     def __init__(self, nmax, rho=1025):
 
         file_name = pkg_resources.resource_filename('l3py', 'data/loadLoveNumbers_Gegout97.txt')
@@ -63,17 +64,16 @@ class WaterHeight(Kernel):
 
 class OceanBottomPressure(Kernel):
     """
-        Implementation of the ocean bottom pressure kernel. Applied to a sequence of potential coefficients, the result
-        is ocean bottom pressure in Pascal when propagated to space domain.
+    Implementation of the ocean bottom pressure kernel. Applied to a sequence of potential coefficients, the result
+    is ocean bottom pressure in Pascal when propagated to space domain.
 
-        Parameters
-        ----------
-        nmax : int
-            maximum spherical harmonic degree
-        rho : float
-            density of water in [kg/m**3]
-        """
-
+    Parameters
+    ----------
+    nmax : int
+        maximum spherical harmonic degree
+    rho : float
+        density of water in [kg/m**3]
+    """
     def __init__(self, nmax):
         file_name = pkg_resources.resource_filename('l3py', 'data/loadLoveNumbers_Gegout97.txt')
         love_numbers = np.loadtxt(file_name)
