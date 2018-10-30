@@ -107,8 +107,6 @@ class OceanBottomPressure(Kernel):
     ----------
     nmax : int
         maximum spherical harmonic degree
-    rho : float
-        density of water in [kg/m**3]
     """
     def __init__(self, nmax):
         file_name = pkg_resources.resource_filename('l3py', 'data/loadLoveNumbers_Gegout97.txt')
