@@ -10,9 +10,9 @@ import abc
 
 class SpatialFilter(metaclass=abc.ABCMeta):
     """
-    Base interface for spatial filters applied to a GravityField instance. Derived classes must at least implement
-    a `filter` method which takes a GravityField as argument. The gravity field passed to this method should
-    remain unchanged.
+    Base interface for spatial filters applied to a PotentialCoefficients instance. Derived classes must at least
+    implement a `filter` method which takes a PotentialCoefficients instance as argument. The gravity field passed
+    to this method should remain unchanged.
 
     """
 
@@ -37,16 +37,16 @@ class Gaussian(SpatialFilter):
 
     def filter(self, gravityfield):
         """
-        Apply the Gaussian filter to a GravityField instance.
+        Apply the Gaussian filter to a PotentialCoefficients instance.
 
         Parameters
         ----------
-        gravityfield : GravityField instance
+        gravityfield : PotentialCoefficients instance
             gravity field to be filtered, remains unchanged
 
         Returns
         -------
-        result : GravityField instance
+        result : PotentialCoefficients instance
             filterd copy of input
 
         """
@@ -85,21 +85,24 @@ class DDK(SpatialFilter):
 
     def __init__(self, level):
 
+        if level < 1 or level > 8:
+            raise ValueError('Only DDK1 to DDK8 are available (requested DDK{0:d}).'.format(level))
+
         file_name = pkg_resources.resource_filename('l3py', 'data/DDK{0:d}_n2-120_n01Unchanged.npz'.format(level))
         self.__orderwise_array = np.load(file_name)['arr_0']
 
     def filter(self, gravityfield):
         """
-        Apply the DDK filter to a GravityField instance.
+        Apply the DDK filter to a PotentialCoefficients instance.
 
         Parameters
         ----------
-        gravityfield : GravityField instance
+        gravityfield : PotentialCoefficients instance
             gravity field to be filtered, remains unchanged
 
         Returns
         -------
-        result : GravityField instance
+        result : PotentialCoefficients instance
             filterd copy of input
 
         Raises

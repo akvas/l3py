@@ -26,12 +26,12 @@ def loadgfc(fname, nmax=None):
     fname : str
         name of GFC file
     nmax : int
-        truncate GravityField instance at degree nmax (Default: return the full field)
+        truncate PotentialCoefficients instance at degree nmax (Default: return the full field)
 
     Returns
     -------
-    gf : GravityField
-        GravityField instance
+    gf : PotentialCoefficients
+        PotentialCoefficients instance
     """
     gf = PotentialCoefficients()
 
