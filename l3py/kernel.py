@@ -7,6 +7,42 @@ import abc
 import l3py.utilities
 
 
+def get_kernel(kernel_name, nmax):
+    """
+    Return kernel coefficients.
+
+    Parameters
+    ----------
+    kernel_name : string
+        name of kernel, currently implemented: water height ('ewh', 'water_height'),
+        ocean bottom pressure ('obp', 'ocean_bottom_pressure')
+    nmax : int
+        maximum degree of kernel coefficients
+
+    Returns
+    -------
+    kernel : Kernel subclass instance
+        kernel associated with kernel_name
+
+    Raises
+    ------
+    ValueError
+        if an unrecognized kernel name is passed
+
+    """
+
+    if kernel_name.lower() in ['ewh', 'water_height']:
+        inverse_coefficients = l3py.kernel.WaterHeight(nmax)
+
+    elif kernel_name.lower() in ['obp', 'ocean_bottom_pressure']:
+        inverse_coefficients = l3py.kernel.OceanBottomPressure(nmax)
+
+    else:
+        raise ValueError("Unrecognized kernel '{0:s}'.".format(kernel_name))
+
+    return inverse_coefficients
+
+
 class Kernel(metaclass=abc.ABCMeta):
     """
     Base interface for spherical harmonic kernels.

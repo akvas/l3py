@@ -194,14 +194,7 @@ class PotentialCoefficients:
         output_grid : instance of type(grid)
             deep copy of the input grid with the gridded values
         """
-        inverse_coefficients = np.ones(self.nmax()+1)
-
-        if kernel not in ('ewh', 'obp'):
-            raise ValueError("Unrecognized kernel ({0:s})".format(kernel))
-        elif kernel == 'ewh':
-            inverse_coefficients = l3py.kernel.WaterHeight(self.nmax())
-        elif kernel == 'obp':
-            inverse_coefficients = l3py.kernel.OceanBottomPressure(self.nmax())
+        inverse_coefficients = l3py.kernel.get_kernel(kernel, self.nmax())
 
         if grid.is_regular():
             P = legendre_functions(self.nmax(), grid.colatitude())
