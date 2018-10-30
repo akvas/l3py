@@ -6,5 +6,6 @@ from . import grid
 from . import gravityfield
 from . import filter
 from . import utilities
+from . import kernel
 
 __all__ = ["io", "grid", "gravityfield", "filter", "kernel", "utilities"]
