@@ -37,6 +37,12 @@ def get_kernel(kernel_name, nmax):
     elif kernel_name.lower() in ['obp', 'ocean_bottom_pressure']:
         inverse_coefficients = l3py.kernel.OceanBottomPressure(nmax)
 
+    elif kernel_name.lower() in ['potential']:
+        inverse_coefficients = l3py.kernel.Potential()
+
+    elif kernel_name.lower() in ['geoid', 'geoid_height']:
+        inverse_coefficients = l3py.kernel.GeoidHeight()
+
     else:
         raise ValueError("Unrecognized kernel '{0:s}'.".format(kernel_name))
 
@@ -72,8 +78,7 @@ class WaterHeight(Kernel):
     def __init__(self, nmax, rho=1025):
 
         file_name = pkg_resources.resource_filename('l3py', 'data/loadLoveNumbers_Gegout97.txt')
-        love_numbers = np.loadtxt(file_name)
-        love_numbers.resize((nmax+1,))
+        love_numbers = np.loadtxt(file_name)[0:nmax+1]
 
         self.__kn = (2*np.arange(0, nmax+1)+1)/(1+love_numbers[0:nmax+1])/(4*np.pi*6.673e-11*rho)
 
@@ -110,8 +115,7 @@ class OceanBottomPressure(Kernel):
     """
     def __init__(self, nmax):
         file_name = pkg_resources.resource_filename('l3py', 'data/loadLoveNumbers_Gegout97.txt')
-        love_numbers = np.loadtxt(file_name)
-        love_numbers.resize((nmax + 1,))
+        love_numbers = np.loadtxt(file_name)[0:nmax+1]
 
         self.__kn = (2 * np.arange(0, nmax + 1) + 1) / (1 + love_numbers[0:nmax + 1]) / (4 * np.pi * 6.673e-11)
 
@@ -137,7 +141,62 @@ class OceanBottomPressure(Kernel):
         return self.__kn[n]/r*l3py.utilities.normal_gravity(r, colat)
 
 
-class SurfaceDensity(Kernel):
-    pass
+class Potential(Kernel):
+    """
+    Implementation of the Poisson kernel (disturbing potential).
+    """
+    def __init__(self):
+        pass
 
+    def kn(self, n, r=6378136.6, colat=0):
+        """
+        Kernel coefficient for degree n.
+
+        Parameters
+        ----------
+        n : int
+            coefficient degree
+        r : float, array_like shape (m,)
+            radius of evaluation points
+        colat : float, array_like shape (m,)
+            co-latitude of evaluation points in radians
+
+        Returns
+        -------
+        kn : float, array_like shape (m,)
+            kernel coefficients for degree n for all evaluation points
+        """
+
+        count = max(np.asarray(r).size, np.asarray(colat).size)
+
+        return np.ones(count)
+
+
+class GeoidHeight(Kernel):
+    """
+    Implementation of the geoid height kernel (disturbing potential divided by normal gravity).
+    """
+    def __init__(self):
+        pass
+
+    def kn(self, n, r=6378136.6, colat=0):
+        """
+        Kernel coefficient for degree n.
+
+        Parameters
+        ----------
+        n : int
+            coefficient degree
+        r : float, array_like shape (m,)
+            radius of evaluation points
+        colat : float, array_like shape (m,)
+            co-latitude of evaluation points in radians
+
+        Returns
+        -------
+        kn : float, array_like shape (m,)
+            kernel coefficients for degree n for all evaluation points
+        """
+
+        return l3py.utilities.normal_gravity(r, colat)**-1
 

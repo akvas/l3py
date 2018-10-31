@@ -136,4 +136,4 @@ def normal_gravity(r, colat, a=6378137.0, f=298.2572221010**-1, convergence_thre
     sin2 = np.sin(latitude) ** 2
 
     gamma0 = (a*ga*cos2+b*gb*sin2)/np.sqrt(a**2*cos2 + b**2*sin2)
-    return gamma0 - 2*ga/a*(1+1/f+m+(-3/f+5*m/2)*sin2)*h+3*ga/a**2*h**2
+    return gamma0 - 2*ga/a*(1+f+m+(-3*f+5*m/2)*sin2)*h+3*ga/a**2*h**2

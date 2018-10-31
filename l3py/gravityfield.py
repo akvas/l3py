@@ -57,6 +57,51 @@ class PotentialCoefficients:
 
         return gf
 
+    def slice(self, min_degree=None, max_degree=None, min_order=None, max_order=None, step_degree=1, step_order=1):
+        """
+        Slice a PotentialCoefficients instance to a specific degree and order range. Return value is a new
+        PotentialCoefficients instance, the original gravity field is unchanged.
+
+        Parameters
+        ----------
+        min_degree : int
+            minimum degree of sliced PotentialCoefficients (Default: 0)
+        max_degree : int
+            maximum degree of sliced PotentialCoefficients (Default: maximum degree if calling object)
+        min_order : int
+            minimum order of sliced PotentialCoefficients (Default: 0)
+        max_order : int
+            maximum order of sliced PotentialCoefficients (Default: max_degree)
+        step_degree : int
+            step between min_degree and max_degree (Default: 1)
+        step_order : int
+            step between min_order and max_order (Default: 1)
+
+        Returns
+        -------
+        gravityfield : PotentialCoefficients
+            new PotentialCoefficients instance with all coefficients outside of the passed degree and order ranges
+            set to zero
+
+        """
+
+        min_degree = 0 if min_degree is None else min_degree
+        max_degree = self.nmax() if max_degree is None else max_degree
+        min_order = 0 if min_order is None else min_order
+        max_order = max_degree if max_order is None else max_order
+
+        idx_degree = np.isin(self.__degree_array(), range(min_degree, max_degree + 1, step_degree))
+        idx_order = np.isin(self.__order_array(), range(min_order, max_order + 1, step_order))
+
+        gf = PotentialCoefficients(self.GM, self.R)
+        gf.epoch = self.epoch
+        gf.anm = np.zeros(self.anm.shape)
+        gf.anm[np.logical_and(idx_degree, idx_order)] = self.anm[np.logical_and(idx_degree, idx_order)].copy()
+
+        gf.truncate(max_degree)
+
+        return gf
+
     def append(self, *coeffs):
         """Append a coefficient to a PotentialCoefficients instance."""
         for coeff in coeffs:
@@ -119,6 +164,15 @@ class PotentialCoefficients:
 
         return da
 
+    def __order_array(self):
+        """Return orders of all coefficients as numpy array"""
+        da = np.zeros(self.anm.shape, dtype=int)
+        for m in range(1, self.nmax()+1):
+            da[m - 1, m::] = m
+            da[m::, m] = m
+
+        return da
+
     def nmax(self):
         """Return maximum spherical harmonic degree of a PotentialCoefficients instance."""
         return self.anm.shape[0]-1
@@ -165,16 +219,58 @@ class PotentialCoefficients:
         return self*(1.0/other)
 
     def degree_amplitudes(self, kernel='potential'):
-        """Compute degree amplitudes from potential coefficients"""
+        """
+        Compute degree amplitudes from potential coefficients.
+
+        Parameters
+        ----------
+        kernel : string
+            name of kernel for the degree amplitude computation
+
+        Returns
+        -------
+        degrees : array_like shape (self.nmax()+1,)
+            integer sequence of degrees
+        amplitudes : array_like shape (self.nmax()+1,)
+            computed degree amplitudes
+        """
         degrees = np.arange(self.nmax()+1)
         amplitudes = np.zeros(degrees.size)
+
+        kn = l3py.kernel.get_kernel(kernel, self.nmax())
 
         for n in degrees:
             cnm = self.anm[n, 0:n+1]
             snm = self.anm[0:n, n]
-            amplitudes[n] = (np.sum(cnm**2) + np.sum(snm**2))/np.sqrt(2*n+1)
+            amplitudes[n] = (np.sum(cnm**2) + np.sum(snm**2))*kn.kn(n)**2
 
-        return degrees, amplitudes*self.GM/self.R
+        return degrees, np.sqrt(amplitudes)*self.GM/self.R
+
+    def coefficient_triangle(self, min_degree=2, max_degree=None):
+        """
+        Arrange spherical harmonic coefficients as triangle for visualization.
+
+        Parameters
+        ----------
+        min_degree : int
+            degrees below min_degree are masked out
+        max_degree : int
+            triangle is truncated at max_degree
+
+        Returns
+        -------
+        triangle : masked_array shape (max_degree+1, 2*max_degree-1)
+
+        """
+
+        max_degree = self.nmax() if max_degree is None else max_degree
+
+        triangle = np.hstack((np.rot90(self.anm, -1), self.anm))
+        mask = np.hstack((np.rot90(np.tril(np.ones(self.anm.shape, dtype=bool)), -1),
+                               np.triu(np.ones(self.anm.shape, dtype=bool), 1)))
+        mask[0:min_degree] = True
+
+        return np.ma.masked_array(triangle, mask=mask)[0:max_degree+1, :]
 
     def to_grid(self, grid=l3py.grid.GeographicGrid(), kernel='ewh'):
         """
@@ -186,8 +282,8 @@ class PotentialCoefficients:
             potential coefficients to be gridded
         grid : instance of Grid subclass
             point distribution (Default: 0.5x0.5 degree geographic grid)
-        kernel : {'ewh', 'obp', 'surface_density'}
-            gravity field functional to be gridded (Default: equivalent water height)
+        kernel : string
+            gravity field functional to be gridded (Default: equivalent water height). See Kernel for details.
 
         Returns
         -------
