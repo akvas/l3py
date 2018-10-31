@@ -282,8 +282,8 @@ class PotentialCoefficients:
             potential coefficients to be gridded
         grid : instance of Grid subclass
             point distribution (Default: 0.5x0.5 degree geographic grid)
-        kernel : {'ewh', 'obp', 'surface_density'}
-            gravity field functional to be gridded (Default: equivalent water height)
+        kernel : string
+            gravity field functional to be gridded (Default: equivalent water height). See Kernel for details.
 
         Returns
         -------
