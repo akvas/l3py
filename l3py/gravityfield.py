@@ -219,16 +219,58 @@ class PotentialCoefficients:
         return self*(1.0/other)
 
     def degree_amplitudes(self, kernel='potential'):
-        """Compute degree amplitudes from potential coefficients"""
+        """
+        Compute degree amplitudes from potential coefficients.
+
+        Parameters
+        ----------
+        kernel : string
+            name of kernel for the degree amplitude computation
+
+        Returns
+        -------
+        degrees : array_like shape (self.nmax()+1,)
+            integer sequence of degrees
+        amplitudes : array_like shape (self.nmax()+1,)
+            computed degree amplitudes
+        """
         degrees = np.arange(self.nmax()+1)
         amplitudes = np.zeros(degrees.size)
+
+        kn = l3py.kernel.get_kernel(kernel, self.nmax())
 
         for n in degrees:
             cnm = self.anm[n, 0:n+1]
             snm = self.anm[0:n, n]
-            amplitudes[n] = (np.sum(cnm**2) + np.sum(snm**2))/np.sqrt(2*n+1)
+            amplitudes[n] = (np.sum(cnm**2) + np.sum(snm**2))*kn.kn(n)**2
 
-        return degrees, amplitudes*self.GM/self.R
+        return degrees, np.sqrt(amplitudes)*self.GM/self.R
+
+    def coefficient_triangle(self, min_degree=2, max_degree=None):
+        """
+        Arrange spherical harmonic coefficients as triangle for visualization.
+
+        Parameters
+        ----------
+        min_degree : int
+            degrees below min_degree are masked out
+        max_degree : int
+            triangle is truncated at max_degree
+
+        Returns
+        -------
+        triangle : masked_array shape (max_degree+1, 2*max_degree-1)
+
+        """
+
+        max_degree = self.nmax() if max_degree is None else max_degree
+
+        triangle = np.hstack((np.rot90(self.anm, -1), self.anm))
+        mask = np.hstack((np.rot90(np.tril(np.ones(self.anm.shape, dtype=bool)), -1),
+                               np.triu(np.ones(self.anm.shape, dtype=bool), 1)))
+        mask[0:min_degree] = True
+
+        return np.ma.masked_array(triangle, mask=mask)[0:max_degree+1, :]
 
     def to_grid(self, grid=l3py.grid.GeographicGrid(), kernel='ewh'):
         """
