@@ -57,6 +57,51 @@ class PotentialCoefficients:
 
         return gf
 
+    def slice(self, min_degree=None, max_degree=None, min_order=None, max_order=None, step_degree=1, step_order=1):
+        """
+        Slice a PotentialCoefficients instance to a specific degree and order range. Return value is a new
+        PotentialCoefficients instance, the original gravity field is unchanged.
+
+        Parameters
+        ----------
+        min_degree : int
+            minimum degree of sliced PotentialCoefficients (Default: 0)
+        max_degree : int
+            maximum degree of sliced PotentialCoefficients (Default: maximum degree if calling object)
+        min_order : int
+            minimum order of sliced PotentialCoefficients (Default: 0)
+        max_order : int
+            maximum order of sliced PotentialCoefficients (Default: max_degree)
+        step_degree : int
+            step between min_degree and max_degree (Default: 1)
+        step_order : int
+            step between min_order and max_order (Default: 1)
+
+        Returns
+        -------
+        gravityfield : PotentialCoefficients
+            new PotentialCoefficients instance with all coefficients outside of the passed degree and order ranges
+            set to zero
+
+        """
+
+        min_degree = 0 if min_degree is None else min_degree
+        max_degree = self.nmax() if max_degree is None else max_degree
+        min_order = 0 if min_order is None else min_order
+        max_order = max_degree if max_order is None else max_order
+
+        idx_degree = np.isin(self.__degree_array(), range(min_degree, max_degree + 1, step_degree))
+        idx_order = np.isin(self.__order_array(), range(min_order, max_order + 1, step_order))
+
+        gf = PotentialCoefficients(self.GM, self.R)
+        gf.epoch = self.epoch
+        gf.anm = np.zeros(self.anm.shape)
+        gf.anm[np.logical_and(idx_degree, idx_order)] = self.anm[np.logical_and(idx_degree, idx_order)].copy()
+
+        gf.truncate(max_degree)
+
+        return gf
+
     def append(self, *coeffs):
         """Append a coefficient to a PotentialCoefficients instance."""
         for coeff in coeffs:
@@ -116,6 +161,15 @@ class PotentialCoefficients:
         for n in range(self.nmax()+1):
             da[n, 0:n+1] = n
             da[0:n, n] = n
+
+        return da
+
+    def __order_array(self):
+        """Return orders of all coefficients as numpy array"""
+        da = np.zeros(self.anm.shape, dtype=int)
+        for m in range(1, self.nmax()+1):
+            da[m - 1, m::] = m
+            da[m::, m] = m
 
         return da
 
