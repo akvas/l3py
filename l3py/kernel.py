@@ -1,6 +1,10 @@
 # Copyright (c) 2018 Andreas Kvas
 # See LICENSE for copyright/license details.
 
+"""
+Isotropic harmonic integral kernels.
+"""
+
 import numpy as np
 import pkg_resources
 import abc
