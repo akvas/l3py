@@ -1,6 +1,9 @@
 # Copyright (c) 2018 Andreas Kvas
 # See LICENSE for copyright/license details.
 
+"""
+File I/O for gravity field representations and gridded data.
+"""
 
 from l3py.gravityfield import PotentialCoefficients, Coefficient
 from netCDF4 import Dataset

@@ -1,6 +1,9 @@
 # Copyright (c) 2018 Andreas Kvas
 # See LICENSE for copyright/license details.
 
+"""
+Auxiliary functions.
+"""
 
 import datetime as dt
 import calendar as cal

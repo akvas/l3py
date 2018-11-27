@@ -1,6 +1,6 @@
 
-l3py
-====
+l3py - L3 Products in Python
+============================
 
 What is l3py
 ------------

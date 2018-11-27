@@ -1,6 +1,9 @@
 # Copyright (c) 2018 Andreas Kvas
 # See LICENSE for copyright/license details.
 
+"""
+Point distributions on the ellipsoid.
+"""
 
 import numpy as np
 import abc

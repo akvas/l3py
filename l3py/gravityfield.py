@@ -1,6 +1,9 @@
 # Copyright (c) 2018 Andreas Kvas
 # See LICENSE for copyright/license details.
 
+"""
+Representations of Earth's gravity field.
+"""
 
 import numpy as np
 import l3py.grid

@@ -1,6 +1,9 @@
 # Copyright (c) 2018 Andreas Kvas
 # See LICENSE for copyright/license details.
 
+"""
+Spatial filters for post-processing of potential coefficients.
+"""
 
 from l3py.gravityfield import PotentialCoefficients
 import pkg_resources
