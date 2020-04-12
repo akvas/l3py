@@ -12,5 +12,5 @@ setuptools.setup(
     long_description=long_description,
     install_requires=['numpy', 'netcdf4', 'numpydoc'],
     packages=['l3py'],
-    package_data={'l3py': ['data/DDK*_n2-120_n01Unchanged.npz', 'data/loadLoveNumbers_Gegout97.txt']}
+    package_data={'l3py': ['data/ddk_normals.npz', 'data/loadLoveNumbers_Gegout97.txt']}
 )
