@@ -19,8 +19,13 @@ The features of l3py are:
 Installation
 ------------
 
-l3py is written for Python>=3.4 and only depends on `numpy` and `netcdf4`. To install
-the package, first clone the repository or download the zip archive. In the root directory
+l3py is written for Python>=3.4 and only depends on `numpy` and `netcdf4`. The current release is hosted 
+on the PyPI and can be installed through:
+
+    pip install l3py
+    
+To install the current development version of the package, first clone the repository or download the zip archive. 
+In the root directory
 of the package (i.e. the directory containing the ``setup.py`` file), running
 
     pip install .
