@@ -11,6 +11,66 @@ import l3py.kernel
 from l3py.utilities import legendre_functions
 
 
+def degree_indices(n):
+    """
+    Return array indices for all coeffcients of degree n.
+
+    The coefficients are ordered by trigonometric function (first all cosine coefficients then all sine coefficients)
+    with increasing order.
+
+    Parameters
+    ----------
+    n : int
+        degree
+
+    Returns
+    -------
+    rows : array_like(k,)
+        row indices of all coefficients of degree n
+    columns : array_like(k,)
+        column indices of all coefficients of degree n
+
+    """
+
+    rows = np.concatenate((np.full(n + 1, n, dtype=int), np.arange(n, dtype=int)))
+    columns = np.concatenate((np.arange(n + 1, dtype=int), np.full(n, n, dtype=int)))
+
+    return rows, columns
+
+
+def order_indices(maximum_degree, m):
+    """
+    Return array indices for all coeffcients of order m.
+
+    The coefficients are ordered by trigonometric function (first all cosine coefficients then all sine coefficients)
+    with increasing degree.
+
+    Parameters
+    ----------
+    maximum_degree : int
+        maximum degree of target coefficient array
+
+    m : int
+        order
+
+    Returns
+    -------
+    rows : array_like(k,)
+        row indices of all coefficients of order m
+    columns : array_like(k,)
+        column indices of all coefficients of order m
+
+    """
+    rows = np.arange(m, maximum_degree + 1, dtype=int)
+    columns = np.full(rows.size, m)
+
+    if m > 0:
+        rows = np.concatenate((rows, np.full(maximum_degree + 1 - m, m - 1)))
+        columns = np.concatenate((columns, np.arange(m, maximum_degree + 1, dtype=int)))
+
+    return rows, columns
+
+
 class Coefficient:
     """
     Class representation of a spherical harmonic coefficient.
@@ -136,7 +196,7 @@ class PotentialCoefficients:
         """
         self.anm[2, 0] = gravityfield.anm[2, 0]
 
-    def by_degree(self, n):
+    def coefficients_by_degree(self, n):
         """
         Return all coefficients of a specific spherical harmonic degree n
 
@@ -243,9 +303,7 @@ class PotentialCoefficients:
         kn = l3py.kernel.get_kernel(kernel, self.nmax())
 
         for n in degrees:
-            cnm = self.anm[n, 0:n+1]
-            snm = self.anm[0:n, n]
-            amplitudes[n] = (np.sum(cnm**2) + np.sum(snm**2))*kn.kn(n)**2
+            amplitudes[n] = np.sum(self.anm[l3py.gravityfield.degree_indices(n)]**2)*kn.kn(n)**2
 
         return degrees, np.sqrt(amplitudes)*self.GM/self.R
 
@@ -302,7 +360,7 @@ class PotentialCoefficients:
             gridded_values = np.zeros((grid.lats.size, grid.lons.size))
 
             for n in range(self.nmax() + 1):
-                coeffs = self.by_degree(n)
+                coeffs = self.coefficients_by_degree(n)
                 orders = [c.m for c in coeffs]
                 idx = [int(n * (n + 1) * 0.5 + m) for m in orders]
 
