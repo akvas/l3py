@@ -7,6 +7,7 @@ Point distributions on the ellipsoid.
 
 import numpy as np
 import abc
+import l3py.utilities
 
 
 class Grid(metaclass=abc.ABCMeta):
@@ -83,21 +84,11 @@ class GeographicGrid(Grid):
 
     def radius(self):
         """Geocentric radius of the points along a meridian."""
-
-        f = self.__flattening()
-        e2 = 2 * f * (1 - f)
-        nu = self.__ellipsoid[0] / np.sqrt(1 - e2 * np.sin(self.lats) ** 2)
-
-        return nu*np.sqrt(np.cos(self.lats)**2 + (1-e2)**2*np.sin(self.lats)**2)
+        return l3py.utilities.geocentric_radius(self.lats, self.__ellipsoid[0], self.__flattening())
 
     def colatitude(self):
         """Colatitude of the points along a meridian."""
-
-        f = self.__flattening()
-        e2 = 2 * f * (1 - f)
-        nu = self.__ellipsoid[0] / np.sqrt(1 - e2 * np.sin(self.lats) ** 2)
-
-        return np.arccos(nu*(1-e2)*np.sin(self.lats)/self.radius())
+        return l3py.utilities.colatitude(self.lats, self.__ellipsoid[0], self.__flattening())
 
     def is_regular(self):
         return True
