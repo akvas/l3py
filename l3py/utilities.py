@@ -140,3 +140,51 @@ def normal_gravity(r, colat, a=6378137.0, f=298.2572221010**-1, convergence_thre
 
     gamma0 = (a*ga*cos2+b*gb*sin2)/np.sqrt(a**2*cos2 + b**2*sin2)
     return gamma0 - 2*ga/a*(1+f+m+(-3*f+5*m/2)*sin2)*h+3*ga/a**2*h**2
+
+
+def geocentric_radius(latitude, a=6378137.0, f=298.2572221010**-1):
+    """
+    Geocentric radius of a point on the ellipsoid.
+
+    Parameters
+    ----------
+    latitude : float, array_like, shape(m, )
+       latitude of evaluation point(s) in radians
+    a : float
+       semi-major axis of ellipsoid (Default: GRS80)
+    f : float
+       flattening of ellipsoid (Default: GRS80)
+
+    Returns
+    -------
+    r : float, array_like, shape(m,) (depending on type latitude)
+       geocentric radius of evaluation point(s) in [m]
+    """
+    e2 = 2 * f * (1 - f)
+    nu = a / np.sqrt(1 - e2 * np.sin(latitude) ** 2)
+
+    return nu * np.sqrt(np.cos(latitude) ** 2 + (1 - e2) ** 2 * np.sin(latitude) ** 2)
+
+
+def colatitude(latitude, a=6378137.0, f=298.2572221010**-1):
+    """
+    Co-latitude of a point on the ellipsoid.
+
+    Parameters
+    ----------
+    latitude : float, array_like, shape(m, )
+      latitude of evaluation point(s) in radians
+    a : float
+      semi-major axis of ellipsoid (Default: GRS80)
+    f : float
+      flattening of ellipsoid (Default: GRS80)
+
+    Returns
+    -------
+    psi : float, array_like, shape(m,) (depending on type latitude)
+      colatitude of evaluation point(s) in [rad]
+    """
+    e2 = 2 * f * (1 - f)
+    nu = a / np.sqrt(1 - e2 * np.sin(latitude) ** 2)
+
+    return np.arccos(nu * (1 - e2) * np.sin(latitude) / geocentric_radius(latitude, a, f))
