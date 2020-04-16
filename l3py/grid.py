@@ -246,6 +246,7 @@ def ellipsoidal_distance(lon1, lat1, lon2, lat2, a=6378137.0, f=298.2572221010**
     """
     Compute the distance between points (lon1, lat1) and (lon2, lat2) on an ellipsoid with
     semi-major axis a and flattening f.
+    
     Parameters
     ----------
     lon1 : float, array_like(m,), array_like(m,n)
