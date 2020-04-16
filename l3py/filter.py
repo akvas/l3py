@@ -83,16 +83,23 @@ class DDK(SpatialFilter):
     Parameters
     ----------
     level : int
-        DDK filter level (currently provided: DDK1 - DDK8)
+        DDK filter level (positive, non-zero)
     """
 
     def __init__(self, level):
 
-        if level < 1 or level > 8:
-            raise ValueError('Only DDK1 to DDK8 are available (requested DDK{0:d}).'.format(level))
+        if level < 1:
+            raise ValueError('DDK level must be at least 1 (requested DDK{0:d}).'.format(level))
 
-        file_name = pkg_resources.resource_filename('l3py', 'data/DDK{0:d}_n2-120_n01Unchanged.npz'.format(level))
-        self.__orderwise_array = np.load(file_name)['arr_0']
+        normals = np.load(pkg_resources.resource_filename('l3py', 'data/ddk_normals.npz'), allow_pickle=True)['arr_0']
+        self.__nmax = normals[0].shape[0]-1
+        weights = 10**(15-level) * np.arange(self.__nmax + 1, dtype=float) ** 4
+        weights[0] = 1
+
+        self.__array = []
+        for normals_block in normals:
+            m = self.__nmax + 1 - normals_block.shape[0]
+            self.__array.append(np.linalg.solve(normals_block + np.diag(weights[m:]), normals_block))
 
     def filter(self, gravityfield):
         """
@@ -118,16 +125,19 @@ class DDK(SpatialFilter):
             raise TypeError("Filter operation only implemented for instances of 'PotentialCoefficients'")
 
         nmax = gravityfield.nmax()
-        if nmax > 120:
-            raise ValueError('DDK filter only implemented for a maximum degree of 120 (nmax={0:d} supplied).'.format(nmax))
+        if nmax > self.__nmax:
+            raise ValueError('DDK filter only implemented for a maximum degree of {1:d} (nmax={0:d} supplied).'
+                             .format(nmax, self.__nmax))
 
         result = gravityfield.copy()
 
-        result.anm[:, 0] = (self.__orderwise_array[0][0:nmax+1, 0:nmax+1]@gravityfield.anm[:, 0:1]).flatten()
+        result.anm[:, 0] = (self.__array[0][0:nmax+1, 0:nmax+1]@gravityfield.anm[:, 0:1]).flatten()
         for m in range(1, nmax+1):
-            result.anm[m::, m] = (self.__orderwise_array[2*m-1][0:nmax + 1 - m, 0:nmax + 1 - m] @
+            result.anm[m::, m] = (self.__array[2*m-1][0:nmax + 1 - m, 0:nmax + 1 - m] @
                                   gravityfield.anm[m::, m:m+1]).flatten()
-            result.anm[m-1, m::] = (self.__orderwise_array[2*m][0:nmax + 1 - m, 0:nmax + 1 - m] @
+            result.anm[m-1, m::] = (self.__array[2*m][0:nmax + 1 - m, 0:nmax + 1 - m] @
                                     gravityfield.anm[m-1:m, m::].T).flatten()
+
+        result.anm[0:2, 0:2] = gravityfield.anm[0:2, 0:2].copy()
 
         return result

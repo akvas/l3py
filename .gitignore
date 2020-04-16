@@ -1,0 +1,4 @@
+doc/_build
+doc/_generated
+l3py.egg-info
+**__pycache__**

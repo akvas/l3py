@@ -5,8 +5,8 @@ l3py - L3 Products in Python
 What is l3py
 ------------
 
-l3py is a free Open Source software package for computing mass anomalies from
-time variable gravity field solutions. It is tailored for products of the GRACE
+l3py is a free Open Source software package for computing gridded mass anomalies (Level 3 products)
+from time variable gravity field solutions. It is tailored for products of the GRACE
 mission and its successor GRACE-FO.
 
 The features of l3py are:
@@ -19,13 +19,26 @@ The features of l3py are:
 Installation
 ------------
 
-l3py is written for Python>=3.4 and only depends on `numpy` and `netcdf4`. To install
-the package, first clone the repository or download the zip archive. In the root directory
+l3py is written for Python>=3.4 and only depends on `numpy` and `netcdf4`. The current release is hosted 
+on the PyPI and can be installed through:
+
+    pip install l3py
+    
+To install the current development version of the package, first clone the repository or download the zip archive. 
+In the root directory
 of the package (i.e. the directory containing the ``setup.py`` file), running
 
     pip install .
 
 will install the package and its dependencies.
+
+API Reference
+-------------
+
+A complete API reference of the module is available on readthedocs: https://l3py.readthedocs.io/en/latest.
+
+[![Documentation Status](https://readthedocs.org/projects/l3py/badge/?version=latest)](https://l3py.readthedocs.io/en/latest/?badge=latest)
+
 
 License
 -------
