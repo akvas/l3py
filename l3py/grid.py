@@ -120,14 +120,14 @@ class GeographicGrid(Grid):
 
         return np.sum(areas*self.values[mask])/np.sum(areas)
 
-    def create_mask(self, polygon):
+    def create_mask(self, basin):
         """
         Create a mask (boolean array) for the Geographic grid instance based on a polygon.
 
         Parameters
         ----------
-        polygon : Polygon
-            Polygon instance. This method also supports shapely Polygons through duck typing.
+        basin : Basin
+            Basin instance.
 
         Returns
         -------
@@ -135,60 +135,59 @@ class GeographicGrid(Grid):
             boolean array of size(nlons, nlats), True for points inside the polygon, False for points outside.
         """
 
-        lons, lats = np.meshgrid(self.lons*180/np.pi, self.lats*180/np.pi)
+        lons, lats = np.meshgrid(self.lons, self.lats)
 
-        mask = winding_number(polygon.exterior.coords, lons, lats)
-        for interior in polygon.interiors:
-            mask = np.logical_and(mask, ~winding_number(interior.coords, lons, lats))
-
-        return mask
+        return basin.contains_points(lons, lats)
 
 
-class Polygon:
+class Basin:
     """
-    Simple class representation of a Polygon, potentially with holes. No sanity checking for potential geometry errors
-    is performed.
+    Simple class representation of an area enclosed by a polygon boundary, potentially with holes. No sanity checking
+    for potential geometry errors is performed.
 
     Parameters
     ----------
-    point_list : list of (lon,lat) tuples
-        Point list defining the polygon. The (lon,lat) tuples should be given in degrees.
-    holes : list of list of (lon,lat) tuples
-        List of point lists defining holes within the polygon. The (lon,lat) tuples should be given in degrees.
+    polygons : ndarray(k, 2) or  list of ndarray(k, 2)
+        Coordinates defining the basin. Can be either a single two-column ndarray with longitude/latitude pairs for
+        rows, or a list of ndarrays in the same format. Longitude/latitude should be given in radians.
     """
-    def __init__(self, point_list, holes=None):
+    def __init__(self, polygons):
 
-        self.exterior = LinearRing(point_list)
-        if holes is not None:
-            self.interiors = [LinearRing(h) for h in holes]
+        if isinstance(polygons, np.ndarray):
+            self.__polygons = polygons,
         else:
-            self.interiors = []
+            self.__polygons = polygons
+
+    def contains_points(self, lon, lat):
+        """
+        Method to check whether points are within the basin bounds.
+
+        Parameters
+        ----------
+        lon : float, ndarray(m,), ndarray(m,n)
+            longitude of points to be tested (should be given in radians)
+        lat : float, ndarray(m,), ndarray(m,n)
+            latitude of points to be tested (should be given in radians)
+        """
+        lon = np.atleast_1d(lon)
+        lat = np.atleast_1d(lat)
+
+        wn = np.zeros(lon.shape if lat.size == 1 else lat.shape, dtype=int)
+
+        for polygon in self.__polygons:
+            wn += winding_number(polygon, lon, lat)
+
+        return np.mod(wn, 2).astype(bool)
 
 
-class LinearRing:
-    """
-    Class representation of a point list.
-
-    Parameters
-    ----------
-    point_list : list of (lon,lat) tuples
-       Point list defining the polygon. The (lon,lat) tuples should be given in degrees.
-    """
-    def __init__(self, point_list):
-
-        self.coords = list(point_list)
-        if self.coords[0] != self.coords[-1]:
-            self.coords.append(self.coords[0])
-
-
-def winding_number(point_list, x, y):
+def winding_number(polygon, x, y):
     """
     Winding number algorithm for point in polygon tests.
 
     Parameters
     ----------
-    point_list : list of (x,y) tuples
-        point list defining the polygon
+    polygon : ndarray(k, 2)
+        two-column ndarray with longitude/latitude pairs defining the polygon
     x : ndarray(m,), ndarray(m,n)
         x-coordinates of points to be tested
     y : ndarray(m,), ndarray(m,n)
@@ -199,11 +198,11 @@ def winding_number(point_list, x, y):
     contains : ndarray(m,), ndarray(m,n)
         boolean array indicating which point is contained in the polygon
     """
-    coords = list(point_list)
-    if coords[0] != coords[-1]:
-        coords.append(coords[0])
+    coords = polygon
+    if np.any(polygon[0] != polygon[-1]):
+        coords = np.append(polygon, polygon[0][np.newaxis, :], axis=0)
 
-    wn = np.zeros(x.shape, dtype=int)
+    wn = np.zeros(x.shape if y.size == 1 else y.shape, dtype=int)
 
     for p0, p1 in zip(coords[0:-1], coords[1:]):
         l1 = p0[1] <= y
