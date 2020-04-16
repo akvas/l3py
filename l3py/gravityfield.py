@@ -31,7 +31,6 @@ def degree_indices(n):
         column indices of all coefficients of degree n
 
     """
-
     rows = np.concatenate((np.full(n + 1, n, dtype=int), np.arange(n, dtype=int)))
     columns = np.concatenate((np.arange(n + 1, dtype=int), np.full(n, n, dtype=int)))
 
