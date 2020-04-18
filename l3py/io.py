@@ -5,7 +5,7 @@
 File I/O for gravity field representations and gridded data.
 """
 
-from l3py.gravityfield import PotentialCoefficients, Coefficient
+from l3py.gravityfield import PotentialCoefficients
 from netCDF4 import Dataset
 import datetime as dt
 import numpy as np
@@ -17,7 +17,7 @@ def __parse_gfc_entry(line):
     n = int(sline[1])
     m = int(sline[2])
 
-    return Coefficient(np.cos, n, m, float(sline[3])), Coefficient(np.sin, n, m, float(sline[4]))
+    return n, m, float(sline[3]), float(sline[4])
 
 
 def loadgfc(fname, nmax=None):
@@ -42,8 +42,9 @@ def loadgfc(fname, nmax=None):
 
         for line in f:
             if line.startswith('gfc'):
-                cnm, snm = __parse_gfc_entry(line)
-                gf.append(cnm, snm)
+                n, m, cnm, snm = __parse_gfc_entry(line)
+                gf.append('c', n, m, cnm)
+                gf.append('s', n, m, snm)
 
             elif line.startswith('radius'):
                 gf.R = float(line.split()[-1])
