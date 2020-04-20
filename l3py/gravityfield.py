@@ -308,20 +308,18 @@ class PotentialCoefficients:
         inverse_coefficients = l3py.kernel.get_kernel(kernel, self.nmax())
 
         if grid.is_regular():
-            P = legendre_functions(self.nmax(), grid.colatitude())
-            Rr = (self.R / grid.radius())
-
             gridded_values = np.zeros((grid.lats.size, grid.lons.size))
+            orders = np.arange(self.nmax() + 1)[:, np.newaxis]
+            P = legendre_functions(self.nmax(), grid.colatitude())
+            P *= self.anm
 
             for n in range(self.nmax() + 1):
-                anm = self.anm[l3py.gravityfield.degree_indices(n)]
-                orders = np.concatenate((np.arange(n + 1), np.arange(1, n + 1)))
-                idx = [int(n * (n + 1) * 0.5 + m) for m in orders]
-
+                row_idx, col_idx = l3py.gravityfield.degree_indices(n)
+                continuation = np.power(self.R / grid.radius(), n + 1)
                 kn = inverse_coefficients.kn(n, grid.radius(), grid.colatitude())
-                CS = np.hstack((anm[0:n+1]*np.cos(orders[0:n+1, np.newaxis]*grid.lons).T,
-                                anm[n+1:]*np.sin(orders[n+1:, np.newaxis]*grid.lons).T))
-                gridded_values += (kn * Rr ** (n + 1))[:, np.newaxis] * P[:, idx] @ CS.T
+
+                CS = np.vstack((np.cos(orders[0:n+1] * grid.lons), np.sin(orders[1:n+1] * grid.lons)))
+                gridded_values += (P[:, row_idx, col_idx] * (continuation*kn)[:, np.newaxis]) @ CS
 
             output_grid = grid.copy()
             output_grid.values = gridded_values*(self.GM/self.R)
