@@ -70,29 +70,6 @@ def order_indices(maximum_degree, m):
     return rows, columns
 
 
-class Coefficient:
-    """
-    Class representation of a spherical harmonic coefficient.
-
-    Parameters
-    ----------
-    trigfun : numpy sine or cosine
-        trigonometric function associated with the coefficient
-    n : int
-        spherical harmonic degree
-    m : int
-        spherical harmonic order
-    value : float
-        numeric value associated with the coefficient
-    """
-
-    def __init__(self, trigfun, n, m, value=0.0):
-        self.n = n
-        self.m = m
-        self.value = value
-        self.trigonometric_function = trigfun
-
-
 class PotentialCoefficients:
     """
     Class representation of a set of (possibly time stamped) potential coefficients.
@@ -164,18 +141,17 @@ class PotentialCoefficients:
 
         return gf
 
-    def append(self, *coeffs):
+    def append(self, trigonometric_function, degree, order, value):
         """Append a coefficient to a PotentialCoefficients instance."""
-        for coeff in coeffs:
-            if coeff.n > self.nmax():
-                tmp = np.zeros((coeff.n+1, coeff.n+1))
-                tmp[0:self.anm.shape[0], 0:self.anm.shape[1]] = self.anm.copy()
-                self.anm = tmp
+        if degree > self.nmax():
+            tmp = np.zeros((degree+1, degree+1))
+            tmp[0:self.anm.shape[0], 0:self.anm.shape[1]] = self.anm.copy()
+            self.anm = tmp
 
-            if coeff.trigonometric_function == np.cos:
-                self.anm[coeff.n, coeff.m] = coeff.value
-            elif coeff.trigonometric_function == np.sin and coeff.m > 0:
-                self.anm[coeff.m-1, coeff.n] = coeff.value
+        if trigonometric_function in ('c', 'cos', 'cosine'):
+            self.anm[degree, order] = value
+        elif trigonometric_function in ('s', 'sin', 'sine') and order > 0:
+            self.anm[order-1, degree] = value
 
     def truncate(self, nmax):
         """Truncate a PotentialCoefficients instance to a new maximum spherical harmonic degree."""
@@ -195,27 +171,6 @@ class PotentialCoefficients:
         """
         self.anm[2, 0] = gravityfield.anm[2, 0]
 
-    def coefficients_by_degree(self, n):
-        """
-        Return all coefficients of a specific spherical harmonic degree n
-
-        Parameters
-        ----------
-        n : int
-            spherical harmonic degree
-
-        Returns
-        -------
-        coeffs : list of Coefficient instances
-            all coefficients associated with degree n
-        """
-        coeffs = []
-        for m in range(0, n+1):
-            coeffs.append(Coefficient(np.cos, n, m, self.anm[n, m]))
-        for m in range(1, n + 1):
-            coeffs.append(Coefficient(np.sin, n, m, self.anm[m-1, n]))
-
-        return coeffs
 
     def __degree_array(self):
         """Return degrees of all coefficients as numpy array"""
@@ -353,20 +308,18 @@ class PotentialCoefficients:
         inverse_coefficients = l3py.kernel.get_kernel(kernel, self.nmax())
 
         if grid.is_regular():
-            P = legendre_functions(self.nmax(), grid.colatitude())
-            Rr = (self.R / grid.radius())
-
             gridded_values = np.zeros((grid.lats.size, grid.lons.size))
+            orders = np.arange(self.nmax() + 1)[:, np.newaxis]
+            P = legendre_functions(self.nmax(), grid.colatitude())
+            P *= self.anm
 
             for n in range(self.nmax() + 1):
-                coeffs = self.coefficients_by_degree(n)
-                orders = [c.m for c in coeffs]
-                idx = [int(n * (n + 1) * 0.5 + m) for m in orders]
-
+                row_idx, col_idx = l3py.gravityfield.degree_indices(n)
+                continuation = np.power(self.R / grid.radius(), n + 1)
                 kn = inverse_coefficients.kn(n, grid.radius(), grid.colatitude())
 
-                CS = np.vstack([c.trigonometric_function(c.m * grid.lons) * c.value for c in coeffs])
-                gridded_values += (kn * Rr ** (n + 1))[:, np.newaxis] * P[:, idx] @ CS
+                CS = np.vstack((np.cos(orders[0:n+1] * grid.lons), np.sin(orders[1:n+1] * grid.lons)))
+                gridded_values += (P[:, row_idx, col_idx] * (continuation*kn)[:, np.newaxis]) @ CS
 
             output_grid = grid.copy()
             output_grid.values = gridded_values*(self.GM/self.R)
