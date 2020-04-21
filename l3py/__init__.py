@@ -32,6 +32,7 @@ Modules
     l3py.filter
     l3py.utilities
     l3py.kernel
+    l3py.time
 
 
 
@@ -43,5 +44,6 @@ from . import gravityfield
 from . import filter
 from . import utilities
 from . import kernel
+from . import time
 
-__all__ = ["io", "grid", "gravityfield", "filter", "kernel", "utilities"]
+__all__ = ["io", "grid", "gravityfield", "filter", "kernel", "utilities", "time"]

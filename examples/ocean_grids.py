@@ -28,7 +28,7 @@ import datetime as dt
 time_start = dt.datetime(2002, 1, 1)
 time_end = dt.datetime(2017, 1, 1)
 
-epochs = [t for t in l3py.utilities.month_iterator(time_start, time_end, use_middle=True)]
+epochs = [t for t in l3py.time.month_iterator(time_start, time_end, use_middle=True)]
 
 model_dir = 'monthly_background'
 solution_dir = 'monthly_n96'
